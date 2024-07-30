@@ -50,6 +50,5 @@ def main():
         st.switch_page("pages/Inventory_Page.py")
 
 
-
 if __name__ == "__main__":
     main()

@@ -13,7 +13,7 @@ st.set_page_config(
 
 btn1 = st.button("Home")
 if btn1:
-    st.switch_page("Main App.py")
+    st.switch_page("main.py")
 
 
 # -----------------------------------------------------------------------------
