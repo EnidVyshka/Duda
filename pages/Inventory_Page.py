@@ -76,7 +76,6 @@ def load_data(conn):
     except:
         return None
 
-    print(data)
     df = pd.DataFrame(data,
                       columns=[
                           'id',
@@ -105,6 +104,7 @@ def update_data(conn, df, changes):
 
         for i, delta in deltas.items():
             row_dict = df.iloc[i].to_dict()
+            row_dict.update({"date_created": row_dict['date_created'].date()})
             row_dict.update(delta)
             rows.append(row_dict)
 
@@ -126,8 +126,7 @@ def update_data(conn, df, changes):
             ''',
             rows,
         )
-    for row in changes['added_rows']:
-        print(row)
+
     if changes['added_rows']:
         cursor.executemany(
             '''
@@ -171,8 +170,7 @@ if db_was_just_created:
 
 # Load data from database
 df = load_data(conn)
-df['date_created']= pd.to_datetime(df['date_created'])
-
+df['date_created'] = pd.to_datetime(df['date_created'])
 
 # Display data with editable table
 edited_df = st.data_editor(
