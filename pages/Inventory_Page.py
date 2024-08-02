@@ -3,6 +3,7 @@ from pathlib import Path
 import sqlite3
 import streamlit as st
 import pandas as pd
+from datetime import date
 
 st.set_page_config(
     initial_sidebar_state="collapsed",
@@ -22,7 +23,7 @@ if btn1:
 def connect_db():
     '''Connects to the sqlite database.'''
 
-    DB_FILENAME = Path(__file__).parent/'inventory.db'
+    DB_FILENAME = Path(__file__).parent / 'inventory.db'
     db_already_exists = DB_FILENAME.exists()
 
     conn = sqlite3.connect(DB_FILENAME)
@@ -47,7 +48,8 @@ def initialize_data(conn):
             magazinim REAL,
             status_porosie TEXT,
             Porositesi TEXT,
-            Order_date TIMESTAMP
+            link TEXT,
+            date_created DATE
         )
         '''
     )
@@ -55,12 +57,11 @@ def initialize_data(conn):
     cursor.execute(
         '''
         INSERT INTO inventory
-            (Produkti, Cmim_shitje, Cmim_pound, Cmim_blerje, Description, magazinim, status_porosie, Porositesi, Order_date)
-        VALUES
-            ('Tutina 6-pack', 1500.00, 10.00, 1240.00,  'Mosha 12-18', 'Inventar', 'Likujduar', 'Enid Vyshka', '2021-09-01'),
-            ('Body 3-pack', 800.00, 3.00, 500.00,  'Mosha 9-12', 'Porosi e re', 'Kthyer', 'John Doe', '2021-09-02'),
-            ('Grykore', 250.00, 1.00, 120.00,  'Me dinosaur per djem', 'Inventar', 'Anulluar', 'Dua Veizaj', '2021-09-03')
-        '''
+            (Produkti, Cmim_shitje, Cmim_pound, Cmim_blerje, Description, magazinim, status_porosie, Porositesi, link, date_created)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+        ('Tutina 6-pack', 1500.00, 10.00, 1240.00, 'Mosha 12-18', 'Inventar', 'Likujduar', 'Enid Vyshka',
+         'https://www.piccalilly.co.uk/media/catalog/product/cache/b5cfb059209203284f6f74f32ef5ee95/o/c/oc-2179_2.jpg',
+         date(2024, 8, 1))
     )
     conn.commit()
 
@@ -75,19 +76,21 @@ def load_data(conn):
     except:
         return None
 
+    print(data)
     df = pd.DataFrame(data,
-        columns=[
-            'id',
-            'Produkti',
-            'Cmim_shitje',
-            'Cmim_blerje',
-            'Cmim_pound',
-            'Description',
-            'magazinim',
-            'status_porosie',
-            'Porositesi',
-            'Order_date'
-        ])
+                      columns=[
+                          'id',
+                          'Produkti',
+                          'Cmim_shitje',
+                          'Cmim_blerje',
+                          'Cmim_pound',
+                          'Description',
+                          'magazinim',
+                          'status_porosie',
+                          'Porositesi',
+                          'link',
+                          'date_created'
+                      ])
 
     return df
 
@@ -117,19 +120,21 @@ def update_data(conn, df, changes):
                 magazinim = :magazinim,
                 status_porosie = :status_porosie,
                 Porositesi = :Porositesi,
-                Order_date = :Order_date
+                link = :link,
+                date_created = :date_created
             WHERE id = :id
             ''',
             rows,
         )
-
+    for row in changes['added_rows']:
+        print(row)
     if changes['added_rows']:
         cursor.executemany(
             '''
             INSERT INTO inventory
-                (id, Produkti, Porositesi, Cmim_shitje, Cmim_blerje, Cmim_pound, Description, magazinim, status_porosie, Order_date)
+                (id, Produkti, Porositesi, Cmim_shitje, Cmim_blerje, Cmim_pound, Description, magazinim, status_porosie, link, date_created)
             VALUES
-                (:id, :Produkti, :Porositesi, :Cmim_shitje, :Cmim_blerje, :Cmim_pound, :Description, :magazinim, :status_porosie, :Order_date)
+                (:id, :Produkti, :Porositesi, :Cmim_shitje, :Cmim_blerje, :Cmim_pound, :Description, :magazinim, :status_porosie, :link, :date_created)
             ''',
             (defaultdict(lambda: None, row) for row in changes['added_rows']),
         )
@@ -156,7 +161,6 @@ st.info('''
     Perdorni tabelen e meposhtme per te shtuar, hequr apo edituar vlerat. \n
     ''')
 
-
 # Connect to database and create table if needed
 conn, db_was_just_created = connect_db()
 
@@ -167,13 +171,16 @@ if db_was_just_created:
 
 # Load data from database
 df = load_data(conn)
+df['date_created']= pd.to_datetime(df['date_created'])
+
 
 # Display data with editable table
 edited_df = st.data_editor(
     df.drop(columns=['id']),
-    column_order=["Order_date", "Porositesi", "Produkti", "Description", "magazinim", "status_porosie", "Cmim_blerje", "Cmim_pound", "Cmim_shitje"],
-    disabled=['id'], # Don't allow editing the 'id' column.
-    num_rows='dynamic', # Allow appending/deleting rows.
+    column_order=["date_created", "Porositesi", "Produkti", "Description", "magazinim", "status_porosie", "Cmim_blerje",
+                  "Cmim_pound", "Cmim_shitje", "link"],
+    disabled=['id'],  # Don't allow editing the 'id' column.
+    num_rows='dynamic',  # Allow appending/deleting rows.
     column_config={
         "magazinim": st.column_config.SelectboxColumn(
             "Magazinim",
@@ -185,7 +192,6 @@ edited_df = st.data_editor(
             ],
             required=True,
         ),
-
 
         "status_porosie": st.column_config.SelectboxColumn(
             "Order Status",
@@ -199,11 +205,13 @@ edited_df = st.data_editor(
             ],
             required=True,
         ),
+
+        "link": st.column_config.LinkColumn("Foto"),
         # Show dollar sign before price columns.
         "Cmim_shitje": st.column_config.NumberColumn(format="ALL %.2f"),
         "Cmim_blerje": st.column_config.NumberColumn(format="ALL %.2f"),
         "Cmim_pound": st.column_config.NumberColumn(format="£ %.2f"),
-
+        "date_created": st.column_config.DateColumn()
     },
     key='inventory_table')
 
@@ -216,6 +224,7 @@ st.button(
     'SAVE',
     type='primary',
     disabled=not has_uncommitted_changes,
+
     # Update data in database
     on_click=update_data,
     args=(conn, df, st.session_state.inventory_table))
