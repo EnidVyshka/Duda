@@ -211,7 +211,7 @@ edited_df = st.data_editor(
         "Cmim_shitje": st.column_config.NumberColumn(format="ALL %.2f"),
         "Cmim_blerje": st.column_config.NumberColumn(format="ALL %.2f"),
         "Cmim_pound": st.column_config.NumberColumn(format="£ %.2f"),
-        "date_created": st.column_config.DateColumn()
+        "date_created": st.column_config.DateColumn(),
     },
     key='inventory_table')
 
