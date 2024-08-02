@@ -3,19 +3,30 @@ from pathlib import Path
 import sqlite3
 import streamlit as st
 import pandas as pd
-from datetime import date
 
-st.set_page_config(
-    initial_sidebar_state="collapsed",
-    layout="wide",
-    page_title='Duda Shop',
-    page_icon=':shopping_bags:',  # This is an emoji shortcode. Could be a URL too.
-)
 
-btn1 = st.button("Home")
+# st.set_page_config(
+#     initial_sidebar_state="collapsed",
+#     layout="wide",
+#     page_title='Duda Shop',
+#     page_icon=':shopping_bags:',  # This is an emoji shortcode. Could be a URL too.
+# )
+
+c1, c2, c3 = st.columns(3)
+
+with c1:
+    btn1 = st.button("Home", use_container_width=True, key="H2")
+with c2:
+    btn2 = st.button("Inventary Tracker", use_container_width=True, key="I2")
+with c3:
+    btn3 = st.button("Produktet", use_container_width=True, key="P2")
+
+if btn2:
+    st.switch_page("pages/Inventory_Page.py")
+if btn3:
+    st.switch_page("pages/Products.py")
 if btn1:
     st.switch_page("main.py")
-
 
 # -----------------------------------------------------------------------------
 # Declare some useful functions.
@@ -54,15 +65,15 @@ def initialize_data(conn):
         '''
     )
 
-    cursor.execute(
-        '''
-        INSERT INTO inventory
-            (Produkti, Cmim_shitje, Cmim_pound, Cmim_blerje, Description, magazinim, status_porosie, Porositesi, link, date_created)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
-        ('Tutina 6-pack', 1500.00, 10.00, 1240.00, 'Mosha 12-18', 'Inventar', 'Likujduar', 'Enid Vyshka',
-         'https://www.piccalilly.co.uk/media/catalog/product/cache/b5cfb059209203284f6f74f32ef5ee95/o/c/oc-2179_2.jpg',
-         date(2024, 8, 1))
-    )
+    # cursor.execute(
+    #     '''
+    #     INSERT INTO inventory
+    #         (Produkti, Cmim_shitje, Cmim_pound, Cmim_blerje, Description, magazinim, status_porosie, Porositesi, link, date_created)
+    #     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+    #     ('Tutina 6-pack', 1500.00, 10.00, 1240.00, 'Mosha 12-18', 'Inventar', 'Likujduar', 'Enid Vyshka',
+    #      'https://www.piccalilly.co.uk/media/catalog/product/cache/b5cfb059209203284f6f74f32ef5ee95/o/c/oc-2179_2.jpg',
+    #      date(2024, 8, 1))
+    # )
     conn.commit()
 
 
@@ -173,6 +184,8 @@ if db_was_just_created:
 df = load_data(conn)
 df['date_created'] = pd.to_datetime(df['date_created'])
 
+
+from pages.Products import product_list
 # Display data with editable table
 edited_df = st.data_editor(
     df.drop(columns=['id']),
@@ -181,6 +194,10 @@ edited_df = st.data_editor(
     disabled=['id'],  # Don't allow editing the 'id' column.
     num_rows='dynamic',  # Allow appending/deleting rows.
     column_config={
+        "Produkti": st.column_config.SelectboxColumn(
+            "Produktet",
+            options=product_list
+        ),
         "magazinim": st.column_config.SelectboxColumn(
             "Magazinim",
             # help="The category of the app",

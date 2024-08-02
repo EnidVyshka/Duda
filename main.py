@@ -10,10 +10,11 @@ st.set_page_config(
 c1, c2, c3 = st.columns(3)
 
 with c1:
-
-    btn1 = st.button("Inventory Tracker")
-
+    btn1 = st.button("Home", use_container_width=True, key="H1")
+with c2:
+    btn2 = st.button("Inventary Tracker", use_container_width=True, key="I1")
 with c3:
+    btn3 = st.button("Produktet", use_container_width=True, key="P1")
     st.write("")
     st.image("vector-logo.png", width=300)
     st.write("")
@@ -56,8 +57,12 @@ def main():
     """, unsafe_allow_html=True)
 
 
-    if btn1:
+    if btn2:
         st.switch_page("pages/Inventory_Page.py")
+    if btn3:
+        st.switch_page("pages/Products.py")
+    if btn1:
+        st.switch_page("main.py")
 
 
 if __name__ == "__main__":
