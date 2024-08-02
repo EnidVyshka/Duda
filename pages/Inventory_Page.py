@@ -127,6 +127,7 @@ def update_data(conn, df, changes):
             rows,
         )
 
+
     if changes['added_rows']:
         cursor.executemany(
             '''
