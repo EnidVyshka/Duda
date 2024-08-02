@@ -4,14 +4,6 @@ import sqlite3
 import streamlit as st
 import pandas as pd
 
-
-# st.set_page_config(
-#     initial_sidebar_state="collapsed",
-#     layout="wide",
-#     page_title='Duda Shop',
-#     page_icon=':shopping_bags:',  # This is an emoji shortcode. Could be a URL too.
-# )
-
 c1, c2, c3 = st.columns(3)
 
 with c1:

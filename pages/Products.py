@@ -110,4 +110,5 @@ st.dataframe(fetch_data("products"),
              }
              )
 
+
 product_list = [t[1:] for t in fetch_data("products")]
