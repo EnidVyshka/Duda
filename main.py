@@ -7,11 +7,20 @@ st.set_page_config(
     page_icon=':shopping_bags:',  # This is an emoji shortcode. Could be a URL too.
 )
 
-btn1 = st.button("Inventory Tracker")
+c1, c2, c3 = st.columns(3)
 
+with c1:
+
+    btn1 = st.button("Inventory Tracker")
+
+with c3:
+    st.write("")
+    st.image("vector-logo.png", width=300)
+    st.write("")
 
 # Define a function to show different pages based on the selection
 def main():
+
     # Define custom CSS for background image
     # background_image_url = "/Users/enidvyshka/PycharmProjects/Inventory_App/logo.jpg"
     background_image_url = "https://images.pexels.com/photos/1648374/pexels-photo-1648374.jpeg?auto=compress&cs=tinysrgb&w=1200"  # Replace with your image file or URL
@@ -37,14 +46,15 @@ def main():
     # Render the CSS to set the background image
     st.markdown(background_css, unsafe_allow_html=True)
 
+
     # Content of the landing page
     st.markdown("""
         <div class="container">
-            <img src="logo.JPG" alt="Logo" style="max-width: 200px; height: auto;">
             <h1>Welcome to Duda Shop</h1>
             <p>We are thrilled to have you here. Explore our offerings and get to know more about us.</p>
         </div>
     """, unsafe_allow_html=True)
+
 
     if btn1:
         st.switch_page("pages/Inventory_Page.py")
