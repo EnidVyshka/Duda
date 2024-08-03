@@ -287,7 +287,6 @@ df_renamed = b.rename(columns={
     7: 'Statusi',
     10: 'Data'
 })
-print(df_renamed)
 
 b1, b2, b3, b4, b5= st.columns(5)
 with b1:
@@ -362,12 +361,6 @@ if bs:
     # Create a horizontal bar chart using plotly
     fig = px.bar(df_sorted, y='Produkti', x='Count', orientation='h')
     st.plotly_chart(fig)
-
-
-
-
-
-
 
 
 nr_lik_prod = get_number_of_tickets_with_status(status="Likujduar")
