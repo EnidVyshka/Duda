@@ -22,9 +22,9 @@ if btn1:
 st.header("Manaxhimi i Produkteve")
 
 def connect_db():
-    """Connects to the sqlite database."""
+    '''Connects to the sqlite database.'''
 
-    DB_FILENAME = Path(__file__).parent / 'product.db'
+    DB_FILENAME = Path(__file__).parent / 'inventory.db'
     db_already_exists = DB_FILENAME.exists()
 
     conn = sqlite3.connect(DB_FILENAME)
@@ -33,20 +33,7 @@ def connect_db():
     return conn, db_was_just_created
 
 
-def initialize_data(conn):
-    '''Initializes the inventory table with some data.'''
-    cursor = conn.cursor()
-
-    cursor.execute(
-        '''
-        CREATE TABLE IF NOT EXISTS products (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            Produkti TEXT
-        )
-        '''
-    )
-
-    conn.commit()
+conn, db_was_just_created = connect_db()
 
 
 def insert_non_existing_values_to_table(table_name, name):
@@ -79,7 +66,7 @@ def fetch_data(table):
 def delete_value_from_table(table_name, name):
     cursor = conn.cursor()
     cursor.execute(
-        f"""      
+        f"""
         DELETE FROM "{table_name}"
         WHERE Produkti = '{name}';
         """
@@ -87,19 +74,20 @@ def delete_value_from_table(table_name, name):
     conn.commit()
 
 
-conn, db_was_just_created = connect_db()
-initialize_data(conn=conn)
+# product_list = [t[1:][0] for t in fetch_data("products")]
 
 prod = st.text_input("Produkti i ri")
 if st.button("Shto ne liste"):
     insert_non_existing_values_to_table("products", f"{prod}")
 # insert_non_existing_values_to_table("products", "sd")
 
-del_prod = st.text_input("Produkti i vjeter")
-if st.button("Hiq nga liste"):
+del_prod = st.selectbox("Produkti i vjeter",
+                        options=[t[1:][0] for t in fetch_data("products")])
+
+if st.button("Hiq nga lista"):
     delete_value_from_table("products", f"{del_prod}")
 
-st.subheader("Tabela permbledhese e listes se produkteve")
+st.subheader("Tabela permbledhese e produkteve")
 st.dataframe(fetch_data("products"),
              hide_index=True,
              column_order=["1"],
@@ -111,4 +99,4 @@ st.dataframe(fetch_data("products"),
              )
 
 
-product_list = [t[1:] for t in fetch_data("products")]
+

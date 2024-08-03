@@ -3,6 +3,14 @@ from pathlib import Path
 import sqlite3
 import streamlit as st
 import pandas as pd
+import plotly.express as px
+
+# st.set_page_config(
+#     initial_sidebar_state="collapsed",
+#     layout="wide",
+#     page_title='Duda Shop',
+#     page_icon=':shopping_bags:',  # This is an emoji shortcode. Could be a URL too.
+# )
 
 c1, c2, c3 = st.columns(3)
 
@@ -19,6 +27,7 @@ if btn3:
     st.switch_page("pages/Products.py")
 if btn1:
     st.switch_page("main.py")
+
 
 # -----------------------------------------------------------------------------
 # Declare some useful functions.
@@ -57,15 +66,15 @@ def initialize_data(conn):
         '''
     )
 
-    # cursor.execute(
-    #     '''
-    #     INSERT INTO inventory
-    #         (Produkti, Cmim_shitje, Cmim_pound, Cmim_blerje, Description, magazinim, status_porosie, Porositesi, link, date_created)
-    #     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
-    #     ('Tutina 6-pack', 1500.00, 10.00, 1240.00, 'Mosha 12-18', 'Inventar', 'Likujduar', 'Enid Vyshka',
-    #      'https://www.piccalilly.co.uk/media/catalog/product/cache/b5cfb059209203284f6f74f32ef5ee95/o/c/oc-2179_2.jpg',
-    #      date(2024, 8, 1))
-    # )
+    cursor.execute(
+        '''
+        CREATE TABLE IF NOT EXISTS products (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            Produkti TEXT
+        )
+        '''
+    )
+
     conn.commit()
 
 
@@ -130,7 +139,6 @@ def update_data(conn, df, changes):
             rows,
         )
 
-
     if changes['added_rows']:
         cursor.executemany(
             '''
@@ -149,6 +157,36 @@ def update_data(conn, df, changes):
         )
 
     conn.commit()
+
+
+def fetch_data(table):
+    cursor = conn.cursor()
+    cursor.execute(
+        f"""
+        SELECT * from "{table}";
+        """
+    )
+    result = cursor.fetchall()
+    conn.commit()
+    # conn.close()
+    return result
+
+
+def get_number_of_tickets_with_status(status):
+    cursor = conn.cursor()
+    cursor.execute(
+        f"""
+            SELECT 
+               COUNT(status_porosie) 
+            FROM 
+               "inventory"
+            WHERE
+               status_porosie = '{status}';
+        """
+    )
+    result = cursor.fetchall()
+    conn.commit()
+    return result[0][0]
 
 
 # -----------------------------------------------------------------------------
@@ -176,8 +214,6 @@ if db_was_just_created:
 df = load_data(conn)
 df['date_created'] = pd.to_datetime(df['date_created'])
 
-
-from pages.Products import product_list
 # Display data with editable table
 edited_df = st.data_editor(
     df.drop(columns=['id']),
@@ -188,7 +224,7 @@ edited_df = st.data_editor(
     column_config={
         "Produkti": st.column_config.SelectboxColumn(
             "Produktet",
-            options=product_list
+            options=[t[1:][0] for t in fetch_data("products")]
         ),
         "magazinim": st.column_config.SelectboxColumn(
             "Magazinim",
@@ -206,6 +242,7 @@ edited_df = st.data_editor(
             # help="The category of the app",
             width="medium",
             options=[
+                "Pending",
                 "Likujduar",
                 "Dorezuar",
                 "Anulluar",
@@ -219,7 +256,7 @@ edited_df = st.data_editor(
         "Cmim_shitje": st.column_config.NumberColumn(format="ALL %.2f"),
         "Cmim_blerje": st.column_config.NumberColumn(format="ALL %.2f"),
         "Cmim_pound": st.column_config.NumberColumn(format="£ %.2f"),
-        "date_created": st.column_config.DateColumn(),
+        "date_created": st.column_config.DateColumn(required=True, ),
     },
     key='inventory_table')
 
@@ -236,3 +273,105 @@ st.button(
     # Update data in database
     on_click=update_data,
     args=(conn, df, st.session_state.inventory_table))
+
+
+st.markdown("## 📈 Statistika dhe Raporte")
+
+a = fetch_data('inventory')
+b = pd.DataFrame(a)
+
+df_renamed = b.rename(columns={
+    1: 'Produkti',
+    2: 'Cmim_shitje',
+    3: 'Cmim_blerje',
+    7: 'Statusi',
+    10: 'Data'
+})
+print(df_renamed)
+
+b1, b2, b3, b4, b5= st.columns(5)
+with b1:
+    rd = st.button("Raport Ditor Profit", key='raport_ditor')
+with b2:
+    rm = st.button("Raport Mujor Profit", key='raport_mujor')
+with b3:
+    rd_prod = st.button("Raport Ditor Produkt", key='raport_ditor_prod')
+with b4:
+    rm_prod = st.button("Raport Mujor Produkt", key='raport_mujor_prod')
+with b5:
+    bs = st.button("Best Seller Chart", key='best_seller')
+
+
+# Group by 'Category' and calculate sum of 'Value'
+grouped_df = df_renamed.groupby('Data').agg({
+    'Cmim_shitje': 'sum',
+    'Cmim_blerje': 'sum'
+}).reset_index()
+
+grouped_df.columns = ['Dita', 'Xhiro (ALL)', 'Blerje (ALL)']
+grouped_df['Difference'] = grouped_df['Xhiro (ALL)'] - grouped_df['Blerje (ALL)']
+
+if rd:
+    st.subheader("\nRaport Ditor")
+    st.data_editor(grouped_df,
+                   use_container_width=True,
+                   hide_index=True,
+                   disabled=True)
+
+if rd_prod:
+    raport_ditor_produkt = df_renamed.groupby(['Data', 'Produkti']).size().reset_index(name='Count')
+    st.dataframe(raport_ditor_produkt,
+                 use_container_width=True,
+                 hide_index=True)
+
+if rm_prod:
+    df_renamed['Data'] = pd.to_datetime(df_renamed['Data'])
+    df_renamed['YearMonth'] = df_renamed['Data'].dt.to_period('M')
+    raport_mujor_produkt = df_renamed.groupby(['YearMonth','Produkti']).size().reset_index(name='Count')
+    st.dataframe(raport_mujor_produkt,
+                 use_container_width=True,
+                 hide_index=True)
+
+
+grouped_df['Dita'] = pd.to_datetime(grouped_df['Dita'])
+grouped_df['YearMonth'] = grouped_df['Dita'].dt.to_period('M')
+
+# Group by 'YearMonth' and aggregate
+grouped_df = grouped_df.groupby('YearMonth').agg({
+    'Xhiro (ALL)': 'sum',
+    'Blerje (ALL)': 'sum',
+}).reset_index()
+
+grouped_df['Difference'] = grouped_df['Xhiro (ALL)'] - grouped_df['Blerje (ALL)']
+grouped_df.rename(columns={
+    'YearMonth': 'Muaji',
+}, inplace=True)
+if rm:
+    st.subheader("\nRaport Mujor")
+    st.data_editor(grouped_df,
+                   use_container_width=True,
+                   hide_index=True,
+                   disabled=True
+                   )
+
+# Display the chart in Streamlit
+if bs:
+    count_df = df_renamed.groupby('Produkti').size().reset_index(name='Count')
+    df_sorted = count_df.sort_values(by='Count', ascending=True)
+    st.subheader("\nAll time Best Seller Chart")
+    # Create a horizontal bar chart using plotly
+    fig = px.bar(df_sorted, y='Produkti', x='Count', orientation='h')
+    st.plotly_chart(fig)
+
+
+
+
+
+
+
+
+nr_lik_prod = get_number_of_tickets_with_status(status="Likujduar")
+nr_pending_prods = get_number_of_tickets_with_status(status="Pending")
+
+st.error(f"Numri i produkteve me status PENDING eshte: {nr_pending_prods}")
+st.success(f"Numri i produkteve me status  LIKUJDUAR eshte: {nr_lik_prod}")
