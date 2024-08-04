@@ -15,7 +15,7 @@ with c1:
     btn1 = st.button("Home", use_container_width=True, key="H1")
 
 with c2:
-    btn2 = st.button("Inventary Tracker", use_container_width=True, key="I1")
+    btn2 = st.button("Inventory Tracker", use_container_width=True, key="I1")
 
 with c3:
     btn3 = st.button("Produktet", use_container_width=True, key="P1")

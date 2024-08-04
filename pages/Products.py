@@ -1,5 +1,7 @@
 import sqlite3
 from pathlib import Path
+
+import pandas as pd
 import streamlit as st
 
 c1, c2, c3 = st.columns(3)
@@ -7,7 +9,7 @@ c1, c2, c3 = st.columns(3)
 with c1:
     btn1 = st.button("Home", use_container_width=True, key="H3")
 with c2:
-    btn2 = st.button("Inventary Tracker", use_container_width=True, key="I3")
+    btn2 = st.button("Inventory Tracker", use_container_width=True, key="I3")
 with c3:
     btn3 = st.button("Produktet", use_container_width=True, key="P3")
 
@@ -97,6 +99,3 @@ st.dataframe(fetch_data("products"),
                  )
              }
              )
-
-
-

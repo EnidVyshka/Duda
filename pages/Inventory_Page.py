@@ -2,8 +2,9 @@ from collections import defaultdict
 from pathlib import Path
 import sqlite3
 import streamlit as st
+from matplotlib import pyplot as plt
 import pandas as pd
-import plotly.express as px
+import plotly.graph_objs as go
 
 # st.set_page_config(
 #     initial_sidebar_state="collapsed",
@@ -17,7 +18,7 @@ c1, c2, c3 = st.columns(3)
 with c1:
     btn1 = st.button("Home", use_container_width=True, key="H2")
 with c2:
-    btn2 = st.button("Inventary Tracker", use_container_width=True, key="I2")
+    btn2 = st.button("Inventory Tracker", use_container_width=True, key="I2")
 with c3:
     btn3 = st.button("Produktet", use_container_width=True, key="P2")
 
@@ -274,32 +275,26 @@ st.button(
     on_click=update_data,
     args=(conn, df, st.session_state.inventory_table))
 
-
 st.markdown("## 📈 Statistika dhe Raporte")
 
-a = fetch_data('inventory')
-b = pd.DataFrame(a)
+# Define options
+options = ["Raport Mujor Profit", "Raport Ditor Profit", "Raport Sipas Produktit"]
 
-df_renamed = b.rename(columns={
+# Add a placeholder option
+options_with_placeholder = ['Zgjidhni nje raport...'] + options
+
+report_type = st.selectbox("Zgjidhni llojin e raportit: ", options_with_placeholder)
+
+data_from_db = fetch_data('inventory')
+data_to_df = pd.DataFrame(data_from_db)
+
+df_renamed = data_to_df.rename(columns={
     1: 'Produkti',
     2: 'Cmim_shitje',
     3: 'Cmim_blerje',
     7: 'Statusi',
     10: 'Data'
 })
-
-b1, b2, b3, b4, b5= st.columns(5)
-with b1:
-    rd = st.button("Raport Ditor Profit", key='raport_ditor')
-with b2:
-    rm = st.button("Raport Mujor Profit", key='raport_mujor')
-with b3:
-    rd_prod = st.button("Raport Ditor Produkt", key='raport_ditor_prod')
-with b4:
-    rm_prod = st.button("Raport Mujor Produkt", key='raport_mujor_prod')
-with b5:
-    bs = st.button("Best Seller Chart", key='best_seller')
-
 
 # Group by 'Category' and calculate sum of 'Value'
 grouped_df = df_renamed.groupby('Data').agg({
@@ -310,61 +305,157 @@ grouped_df = df_renamed.groupby('Data').agg({
 grouped_df.columns = ['Dita', 'Xhiro (ALL)', 'Blerje (ALL)']
 grouped_df['Difference'] = grouped_df['Xhiro (ALL)'] - grouped_df['Blerje (ALL)']
 
-if rd:
-    st.subheader("\nRaport Ditor")
+if report_type == "Raport Ditor Profit":
+    st.subheader("\nRaport Ditor Profit")
     st.data_editor(grouped_df,
                    use_container_width=True,
                    hide_index=True,
                    disabled=True)
+    st.subheader("\nGrafiku Ditor Profit")
+    fig = go.Figure()
+    grouped_df['Dita'] = grouped_df['Dita'].astype(str)
 
-if rd_prod:
-    raport_ditor_produkt = df_renamed.groupby(['Data', 'Produkti']).size().reset_index(name='Count')
-    st.dataframe(raport_ditor_produkt,
-                 use_container_width=True,
-                 hide_index=True)
+    for column in grouped_df.columns[1:]:  # Skip the first column (Month) for x-values
+        fig.add_trace(go.Scatter(
+            x=grouped_df['Dita'],  # x-values (months)
+            y=grouped_df[column],  # y-values
+            mode='lines+markers',
+            name=column
+        ))
 
-if rm_prod:
-    df_renamed['Data'] = pd.to_datetime(df_renamed['Data'])
-    df_renamed['YearMonth'] = df_renamed['Data'].dt.to_period('M')
-    raport_mujor_produkt = df_renamed.groupby(['YearMonth','Produkti']).size().reset_index(name='Count')
-    st.dataframe(raport_mujor_produkt,
-                 use_container_width=True,
-                 hide_index=True)
+    # Update layout for the chart
+    fig.update_layout(
+        xaxis_title='Dita',
+        yaxis_title='Vlerat',
+        xaxis=dict(
+            tickformat='%d %b %Y ',  # Format: 'Jan 2024'
+            tickvals=grouped_df['Dita'],  # Ensure all months are displayed
+        ),
+        template='plotly_white'
+    )
 
+    # Display the plotly chart in Streamlit
+    st.plotly_chart(fig)
 
-grouped_df['Dita'] = pd.to_datetime(grouped_df['Dita'])
-grouped_df['YearMonth'] = grouped_df['Dita'].dt.to_period('M')
+    # print(grouped_df.shape)
+    df_dropped = grouped_df.drop('Blerje (ALL)', axis=1)
+    df_dropped.set_index('Dita', inplace=True)
 
-# Group by 'YearMonth' and aggregate
-grouped_df = grouped_df.groupby('YearMonth').agg({
-    'Xhiro (ALL)': 'sum',
-    'Blerje (ALL)': 'sum',
-}).reset_index()
+    st.line_chart(df_dropped)
 
-grouped_df['Difference'] = grouped_df['Xhiro (ALL)'] - grouped_df['Blerje (ALL)']
-grouped_df.rename(columns={
-    'YearMonth': 'Muaji',
-}, inplace=True)
-if rm:
-    st.subheader("\nRaport Mujor")
+elif report_type == "Raport Sipas Produktit":
+    a1, a2 = st.columns(2)
+    with a1:
+        st.title("")
+        data_e_pare = st.date_input("Zgjidhni daten e fillimit: ", key='d1')
+    with a2:
+        st.title("")
+        data_e_dyte = st.date_input("Zgjidhni daten e mbarimit: ", key='d2')
+
+    if data_e_pare > data_e_dyte:
+        st.warning("Data e fillimit duhet te jete me perpara ne kohe se data e mbarimit")
+    else:
+
+        raport_ditor_produkt = df_renamed.groupby(['Data', 'Produkti']).size().reset_index(name='Count')
+        # st.dataframe(raport_ditor_produkt,
+        #              use_container_width=True,
+        #              hide_index=True)
+
+        raport_ditor_produkt['Data'] = pd.to_datetime(raport_ditor_produkt['Data'])
+        # raport_ditor_produkt
+
+        filtered_df_by_timerange = raport_ditor_produkt[(raport_ditor_produkt['Data'].dt.date >= data_e_pare) & (
+                    raport_ditor_produkt['Data'].dt.date <= data_e_dyte)]
+
+        filtered_df_by_timerange = filtered_df_by_timerange.groupby('Produkti')['Count'].sum()
+
+        filtered_df_by_timerange = filtered_df_by_timerange.reset_index()
+        with a1:
+
+            st.subheader("Tabela Permbledhese sipas Produktit")
+            st.subheader("")
+            st.dataframe(filtered_df_by_timerange, use_container_width=True, hide_index=True)
+
+        if not filtered_df_by_timerange.empty:
+            fig = go.Figure(data=[go.Pie(
+                labels=filtered_df_by_timerange['Produkti'],
+                values=filtered_df_by_timerange['Count'],
+                hole=0.3,  # Creates a donut chart; set to 0 for a regular pie chart
+                textinfo='label+value',  # Display label and percentage on the pie chart
+                insidetextorientation='radial'  # Ensures text is displayed radially inside the pie
+            )])
+
+            # Update layout
+            fig.update_layout(
+                annotations=[dict(
+                    text='Chart',
+                    x=0.5,
+                    y=0.5,
+                    font_size=25,
+                    showarrow=False
+                )]
+            )
+
+            # Display the pie chart in Streamlit
+            with a2:
+                st.subheader("Grafiku Permbledhes sipas Produktit")
+                st.plotly_chart(fig)
+        else:
+            st.warning("Nuk ka te dhena shije per daten e zgjedhur. Provoni nje date tjeter!")
+
+elif report_type == "Raport Mujor Profit":
+    grouped_df['Dita'] = pd.to_datetime(grouped_df['Dita'])
+    grouped_df['YearMonth'] = grouped_df['Dita'].dt.to_period('M')
+
+    # Group by 'YearMonth' and aggregate
+    grouped_df = grouped_df.groupby('YearMonth').agg({
+        'Xhiro (ALL)': 'sum',
+        'Blerje (ALL)': 'sum',
+    }).reset_index()
+
+    grouped_df['Difference'] = grouped_df['Xhiro (ALL)'] - grouped_df['Blerje (ALL)']
+    grouped_df.rename(columns={
+        'YearMonth': 'Muaji',
+    }, inplace=True)
+
+    st.subheader("\nRaport Mujor Profit")
     st.data_editor(grouped_df,
                    use_container_width=True,
                    hide_index=True,
                    disabled=True
                    )
+    st.subheader("Grafiku Permbledhes Mujor Profit")
+    # df_dropped = grouped_df.drop('Blerje (ALL)', axis=1)
+    # df_dropped.set_index('Muaji', inplace=True)
+    # st.line_chart(df_dropped)
 
-# Display the chart in Streamlit
-if bs:
-    count_df = df_renamed.groupby('Produkti').size().reset_index(name='Count')
-    df_sorted = count_df.sort_values(by='Count', ascending=True)
-    st.subheader("\nAll time Best Seller Chart")
-    # Create a horizontal bar chart using plotly
-    fig = px.bar(df_sorted, y='Produkti', x='Count', orientation='h')
+    fig = go.Figure()
+    grouped_df['Muaji'] = grouped_df['Muaji'].astype(str)
+
+    for column in grouped_df.columns[1:]:  # Skip the first column (Month) for x-values
+        fig.add_trace(go.Scatter(
+            x=grouped_df['Muaji'],  # x-values (months)
+            y=grouped_df[column],  # y-values
+            mode='lines+markers',
+            name=column
+        ))
+
+    # Update layout for the chart
+    fig.update_layout(
+        xaxis_title='Muaji',
+        yaxis_title='Vlerat',
+        xaxis=dict(
+            tickformat='%b %Y',  # Format: 'Jan 2024'
+            tickvals=grouped_df['Muaji'],  # Ensure all months are displayed
+        ),
+        template='plotly_dark'
+    )
+
     st.plotly_chart(fig)
 
-
-nr_lik_prod = get_number_of_tickets_with_status(status="Likujduar")
-nr_pending_prods = get_number_of_tickets_with_status(status="Pending")
-
-st.error(f"Numri i produkteve me status PENDING eshte: {nr_pending_prods}")
-st.success(f"Numri i produkteve me status  LIKUJDUAR eshte: {nr_lik_prod}")
+#
+# nr_lik_prod = get_number_of_tickets_with_status(status="Likujduar")
+# nr_pending_prods = get_number_of_tickets_with_status(status="Pending")
+#
+# st.error(f"Numri i produkteve me status PENDING eshte: {nr_pending_prods}")
+# st.success(f"Numri i produkteve me status  LIKUJDUAR eshte: {nr_lik_prod}")
