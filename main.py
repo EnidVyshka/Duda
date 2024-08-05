@@ -36,7 +36,8 @@ def main():
 
     # Define custom CSS for background image
     # background_image_url = "/Users/enidvyshka/PycharmProjects/Inventory_App/logo.jpg"
-    background_image_url = "https://github.com/EnidVyshka/Duda/blob/main/background.JPG?raw=true"  # Replace with your image file or URL
+    background_image_url = "https://github.com/EnidVyshka/EnidVyshka/blob/main/background.JPG?raw=true"
+    # Replace with your image file or URL
     background_css = f"""
         <style>
             .stApp {{
