@@ -309,6 +309,7 @@ df_likujduar = df_renamed[df_renamed['Statusi'] == 'Likujduar']
 
 # filtered_df = df[df['City'] == 'Chicago']
 
+
 # Group by 'Category' and calculate sum of 'Value'
 grouped_df = df_likujduar.groupby('Data').agg({
     'Cmim_shitje': 'sum',
