@@ -213,7 +213,6 @@ if db_was_just_created:
 # Load data from database
 df = load_data(conn)
 df['date_created'] = pd.to_datetime(df['date_created'])
-df
 # Display data with editable table
 edited_df = st.data_editor(
     df.drop(columns=['id']),
