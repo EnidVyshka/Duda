@@ -113,7 +113,6 @@ def update_data(conn, df, changes):
 
     if changes['edited_rows']:
         deltas = st.session_state.inventory_table['edited_rows']
-        st.write(deltas)
         rows = []
 
         for i, delta in deltas.items():
@@ -121,7 +120,6 @@ def update_data(conn, df, changes):
             row_dict.update({"date_created": row_dict['date_created'].date()})
             row_dict.update(delta)
             rows.append(row_dict)
-        st.write(rows)
         cursor.executemany(
             '''
             UPDATE inventory
@@ -140,7 +138,6 @@ def update_data(conn, df, changes):
             ''',
             rows,
         )
-        st.write(rows)
 
     if changes['added_rows']:
         cursor.executemany(
