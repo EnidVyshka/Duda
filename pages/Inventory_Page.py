@@ -55,8 +55,8 @@ def initialize_data(conn):
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             Produkti TEXT,
             Cmim_shitje REAL,
-            Cmim_pound REAL,
             Cmim_blerje REAL,
+            Cmim_pound REAL,
             Description TEXT,
             magazinim REAL,
             status_porosie TEXT,
@@ -94,8 +94,8 @@ def load_data(conn):
                           'id',
                           'Produkti',
                           'Cmim_shitje',
-                          'Cmim_blerje',
                           'Cmim_pound',
+                          'Cmim_blerje',
                           'Description',
                           'magazinim',
                           'status_porosie',
@@ -113,6 +113,7 @@ def update_data(conn, df, changes):
 
     if changes['edited_rows']:
         deltas = st.session_state.inventory_table['edited_rows']
+        st.write(deltas)
         rows = []
 
         for i, delta in deltas.items():
@@ -120,15 +121,15 @@ def update_data(conn, df, changes):
             row_dict.update({"date_created": row_dict['date_created'].date()})
             row_dict.update(delta)
             rows.append(row_dict)
-
+        st.write(rows)
         cursor.executemany(
             '''
             UPDATE inventory
             SET
                 Produkti = :Produkti,
                 Cmim_shitje = :Cmim_shitje,
-                Cmim_blerje = :Cmim_blerje,
                 Cmim_pound = :Cmim_pound,
+                Cmim_blerje = :Cmim_blerje,
                 Description = :Description,
                 magazinim = :magazinim,
                 status_porosie = :status_porosie,
@@ -139,14 +140,15 @@ def update_data(conn, df, changes):
             ''',
             rows,
         )
+        st.write(rows)
 
     if changes['added_rows']:
         cursor.executemany(
             '''
             INSERT INTO inventory
-                (id, Produkti, Porositesi, Cmim_shitje, Cmim_blerje, Cmim_pound, Description, magazinim, status_porosie, link, date_created)
+                (id, Produkti, Porositesi, Cmim_shitje, Cmim_pound, Cmim_blerje, Description, magazinim, status_porosie, link, date_created)
             VALUES
-                (:id, :Produkti, :Porositesi, :Cmim_shitje, :Cmim_blerje, :Cmim_pound, :Description, :magazinim, :status_porosie, :link, :date_created)
+                (:id, :Produkti, :Porositesi, :Cmim_shitje, :Cmim_pound, :Cmim_blerje,  :Description, :magazinim, :status_porosie, :link, :date_created)
             ''',
             (defaultdict(lambda: None, row) for row in changes['added_rows']),
         )
@@ -214,17 +216,26 @@ if db_was_just_created:
 # Load data from database
 df = load_data(conn)
 df['date_created'] = pd.to_datetime(df['date_created'])
-
+df
 # Display data with editable table
 edited_df = st.data_editor(
     df.drop(columns=['id']),
-    column_order=["date_created", "Porositesi", "Produkti", "Description", "magazinim", "status_porosie", "Cmim_blerje",
-                  "Cmim_pound", "Cmim_shitje", "link"],
-    disabled=['id'],  # Don't allow editing the 'id' column.
+    column_order=["date_created",
+                  "Porositesi",
+                  "Produkti",
+                  "Description",
+                  "magazinim",
+                  "status_porosie",
+                  "Cmim_shitje",
+                  "Cmim_pound",
+                  "Cmim_blerje", ],
+    # disabled=['id'],  # Don't allow editing the 'id' column.
     num_rows='dynamic',  # Allow appending/deleting rows.
     column_config={
+        "date_created": st.column_config.DateColumn("Data", required=True),
+        "Porositesi": st.column_config.TextColumn("Klienti"),
         "Produkti": st.column_config.SelectboxColumn(
-            "Produktet",
+            "Artikulli",
             options=[t[1:][0] for t in fetch_data("products")]
         ),
         "magazinim": st.column_config.SelectboxColumn(
@@ -252,12 +263,10 @@ edited_df = st.data_editor(
             required=True,
         ),
 
-        "link": st.column_config.LinkColumn("Foto"),
-        # Show dollar sign before price columns.
+        # "link": st.column_config.LinkColumn("Foto"),
         "Cmim_shitje": st.column_config.NumberColumn(format="ALL %.2f"),
         "Cmim_blerje": st.column_config.NumberColumn(format="ALL %.2f"),
         "Cmim_pound": st.column_config.NumberColumn(format="£ %.2f"),
-        "date_created": st.column_config.DateColumn(required=True, ),
     },
     key='inventory_table')
 
@@ -296,8 +305,12 @@ df_renamed = data_to_df.rename(columns={
     10: 'Data'
 })
 
+df_likujduar = df_renamed[df_renamed['Statusi'] == 'Likujduar']
+
+# filtered_df = df[df['City'] == 'Chicago']
+
 # Group by 'Category' and calculate sum of 'Value'
-grouped_df = df_renamed.groupby('Data').agg({
+grouped_df = df_likujduar.groupby('Data').agg({
     'Cmim_shitje': 'sum',
     'Cmim_blerje': 'sum'
 }).reset_index()
@@ -341,7 +354,7 @@ if report_type == "Raport Ditor Profit":
     df_dropped = grouped_df.drop('Blerje (ALL)', axis=1)
     df_dropped.set_index('Dita', inplace=True)
 
-    st.line_chart(df_dropped)
+    # st.line_chart(df_dropped)
 
 elif report_type == "Raport Sipas Produktit":
     a1, a2 = st.columns(2)
@@ -365,7 +378,7 @@ elif report_type == "Raport Sipas Produktit":
         # raport_ditor_produkt
 
         filtered_df_by_timerange = raport_ditor_produkt[(raport_ditor_produkt['Data'].dt.date >= data_e_pare) & (
-                    raport_ditor_produkt['Data'].dt.date <= data_e_dyte)]
+                raport_ditor_produkt['Data'].dt.date <= data_e_dyte)]
 
         filtered_df_by_timerange = filtered_df_by_timerange.groupby('Produkti')['Count'].sum()
 
@@ -401,7 +414,7 @@ elif report_type == "Raport Sipas Produktit":
                 st.subheader("Grafiku Permbledhes sipas Produktit")
                 st.plotly_chart(fig)
         else:
-            st.warning("Nuk ka te dhena shije per daten e zgjedhur. Provoni nje date tjeter!")
+            st.warning("Nuk ka te dhena shitje per daten e zgjedhur. Provoni nje date tjeter!")
 
 elif report_type == "Raport Mujor Profit":
     grouped_df['Dita'] = pd.to_datetime(grouped_df['Dita'])
