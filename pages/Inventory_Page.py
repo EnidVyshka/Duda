@@ -296,7 +296,7 @@ data_to_df = pd.DataFrame(data_from_db)
 df_renamed = data_to_df.rename(columns={
     1: 'Produkti',
     2: 'Cmim_shitje',
-    3: 'Cmim_blerje',
+    4: 'Cmim_blerje',
     7: 'Statusi',
     10: 'Data'
 })
@@ -312,7 +312,7 @@ grouped_df = df_likujduar.groupby('Data').agg({
     'Cmim_blerje': 'sum'
 }).reset_index()
 
-grouped_df.columns = ['Dita', 'Xhiro (ALL)', 'Blerje (ALL)']
+grouped_df.columns = ['Dita', 'Xhiro (ALL)','Blerje (ALL)']
 grouped_df['Difference'] = grouped_df['Xhiro (ALL)'] - grouped_df['Blerje (ALL)']
 
 if report_type == "Raport Ditor Profit":
