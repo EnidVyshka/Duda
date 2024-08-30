@@ -271,6 +271,7 @@ st.warning('''
 ''')
 has_uncommitted_changes = any(len(v) for v in st.session_state.inventory_table.values())
 
+
 st.button(
     'SAVE',
     type='primary',
@@ -280,15 +281,6 @@ st.button(
     on_click=update_data,
     args=(conn, df, st.session_state.inventory_table))
 
-st.markdown("## 📈 Statistika dhe Raporte")
-
-# Define options
-options = ["Raport Mujor Profit", "Raport Ditor Profit", "Raport Sipas Produktit"]
-
-# Add a placeholder option
-options_with_placeholder = ['Zgjidhni nje raport...'] + options
-
-report_type = st.selectbox("Zgjidhni llojin e raportit: ", options_with_placeholder)
 
 data_from_db = fetch_data('inventory')
 data_to_df = pd.DataFrame(data_from_db)
@@ -300,6 +292,58 @@ df_renamed = data_to_df.rename(columns={
     7: 'Statusi',
     10: 'Data'
 })
+
+st.subheader(" ⚙️ Filtrimi i te dhenave ")
+with st.expander("Klikoni KETU per te filtruar tabelen"):
+    q1, q2 = st.columns(2)
+    with q1:
+        st.title("")
+        data1 = st.date_input("Zgjidhni daten e fillimit: ", key='q1')
+    with q2:
+        st.title("")
+        data2 = st.date_input("Zgjidhni daten e mbarimit: ", key='q2')
+    if data1 > data2:
+        st.warning("Data e fillimit duhet te jete me perpara ne kohe se data e mbarimit")
+    else:
+        df_renamed['Data'] = pd.to_datetime(df_renamed['Data'])
+        filtered_dff = df_renamed[(df_renamed['Data'].dt.date >= data1) & (df_renamed['Data'].dt.date <= data2)]
+        filtered_dff['date_only'] = filtered_dff['Data'].dt.date
+    st.dataframe(filtered_dff,
+                 column_order=[
+                               "date_only",
+                               "8",
+                               "Produkti",
+                               "5",
+                               "6",
+                               "Statusi",
+                               "Cmim_shitje",
+                               "3",
+                               "Cmim_blerje", ],
+                 column_config={
+                     "date_only":st.column_config.DateColumn("Date"),
+                     "8": st.column_config.TextColumn("Klienti"),
+                     "5": st.column_config.TextColumn("Description"),
+                     "6": st.column_config.TextColumn("Magazinim"),
+                     "7": st.column_config.TextColumn("Order Status"),
+                     "Produkti": st.column_config.TextColumn("Artikulli"),
+                     "Porositesi": st.column_config.TextColumn("Klienti"),
+
+                     "Cmim_shitje": st.column_config.NumberColumn("Cmim Shitje",format="ALL %.2f"),
+                     "Cmim_blerje": st.column_config.NumberColumn("Cmim Blerje",format="ALL %.2f"),
+                     "3": st.column_config.NumberColumn("Cmim Pound",format="£ %.2f"),
+                 },
+                 use_container_width=True
+                 )  # Display the DataFrame inside the expander
+
+st.markdown("## 📈 Statistika dhe Raporte")
+
+# Define options
+options = ["Raport Mujor Profit", "Raport Ditor Profit", "Raport Sipas Produktit"]
+
+# Add a placeholder option
+options_with_placeholder = ['Zgjidhni nje raport...'] + options
+
+report_type = st.selectbox("Zgjidhni llojin e raportit: ", options_with_placeholder)
 
 df_likujduar = df_renamed[df_renamed['Statusi'] == 'Likujduar']
 
