@@ -23,10 +23,11 @@ if btn1:
 
 st.header("Manaxhimi i Produkteve")
 
-def connect_db():
-    '''Connects to the sqlite database.'''
 
-    DB_FILENAME = Path(__file__).parent / 'inventory.db'
+def connect_db():
+    """Connects to the sqlite database."""
+
+    DB_FILENAME = Path(__file__).parent / "inventory.db"
     db_already_exists = DB_FILENAME.exists()
 
     conn = sqlite3.connect(DB_FILENAME)
@@ -83,19 +84,17 @@ if st.button("Shto ne liste"):
     insert_non_existing_values_to_table("products", f"{prod}")
 # insert_non_existing_values_to_table("products", "sd")
 
-del_prod = st.selectbox("Produkti i vjeter",
-                        options=[t[1:][0] for t in fetch_data("products")])
+del_prod = st.selectbox(
+    "Produkti i vjeter", options=[t[1:][0] for t in fetch_data("products")]
+)
 
 if st.button("Hiq nga lista"):
     delete_value_from_table("products", f"{del_prod}")
 
 st.subheader("Tabela permbledhese e produkteve")
-st.dataframe(fetch_data("products"),
-             hide_index=True,
-             column_order=["1"],
-             column_config={
-                 "1": st.column_config.TextColumn(
-                     "Lista e produkteve"
-                 )
-             }
-             )
+st.dataframe(
+    fetch_data("products"),
+    hide_index=True,
+    column_order=["1"],
+    column_config={"1": st.column_config.TextColumn("Lista e produkteve")},
+)

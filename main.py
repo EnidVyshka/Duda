@@ -4,8 +4,8 @@ import streamlit as st
 st.set_page_config(
     initial_sidebar_state="collapsed",
     layout="wide",
-    page_title='Duda Shop',
-    page_icon=':shopping_bags:',  # This is an emoji shortcode. Could be a URL too.
+    page_title="Duda Shop",
+    page_icon=":shopping_bags:",  # This is an emoji shortcode. Could be a URL too.
 )
 
 
@@ -24,19 +24,25 @@ with c3:
 # st.image("vector-logo.png", width=200)
 
 # Content of the landing page
-st.markdown("""
+st.markdown(
+    """
     <div class="container">
         <h1>Welcome to Duda Shop</h1>
         <p><p>
     </div>
-""", unsafe_allow_html=True)
+""",
+    unsafe_allow_html=True,
+)
+
 
 # Define a function to show different pages based on the selection
 def main():
 
     # Define custom CSS for background image
     # background_image_url = "/Users/enidvyshka/PycharmProjects/Inventory_App/logo.jpg"
-    background_image_url = "https://github.com/EnidVyshka/EnidVyshka/blob/main/background.JPG?raw=true"
+    background_image_url = (
+        "https://github.com/EnidVyshka/EnidVyshka/blob/main/background.JPG?raw=true"
+    )
     # Replace with your image file or URL
     background_css = f"""
         <style>
@@ -70,8 +76,6 @@ def main():
         st.switch_page("pages/Products.py")
     if btn1:
         st.switch_page("main.py")
-
-
 
 
 if __name__ == "__main__":
