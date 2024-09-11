@@ -15,6 +15,7 @@ import plotly.graph_objs as go
 
 c1, c2, c3 = st.columns(3)
 
+
 with c1:
     btn1 = st.button("Home", use_container_width=True, key="H2")
 with c2:
