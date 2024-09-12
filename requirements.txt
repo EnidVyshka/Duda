@@ -53,3 +53,4 @@ watchdog==4.0.1
 webencodings==0.5.1
 plotly==5.23.0
 matplotlib==3.9.1
+psycopg2==2.9.9
