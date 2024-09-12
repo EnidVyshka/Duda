@@ -1,2 +1,2 @@
 a.db
-*.toml
+.streamlit/secrets.toml
