@@ -142,23 +142,40 @@ def update_data(conn, df, changes):
             row_dict.update({"date_created": row_dict["date_created"].date()})
             row_dict.update(delta)
             rows.append(row_dict)
+
+        data_edited = [
+            (
+                row.get('Produkti'),
+                row.get('Cmim_shitje'),
+                row.get('Cmim_pound'),
+                row.get('Cmim_blerje'),
+                row.get('Description'),
+                row.get('magazinim'),
+                row.get('status_porosie'),
+                row.get('Porositesi'),
+                row.get('link'),
+                row.get('date_created'),
+                row.get('id')  # `id` must be the last element
+            )
+            for row in rows
+        ]
         cursor.executemany(
             """
             UPDATE inventory
             SET
-                Produkti = :Produkti,
-                Cmim_shitje = :Cmim_shitje,
-                Cmim_pound = :Cmim_pound,
-                Cmim_blerje = :Cmim_blerje,
-                Description = :Description,
-                magazinim = :magazinim,
-                status_porosie = :status_porosie,
-                Porositesi = :Porositesi,
-                link = :link,
-                date_created = :date_created
-            WHERE id = :id
+                Produkti = %s,
+                Cmim_shitje = %s,
+                Cmim_pound = %s,
+                Cmim_blerje = %s,
+                Description = %s,
+                magazinim = %s,
+                status_porosie = %s,
+                Porositesi = %s,
+                link = %s,
+                date_created = %s
+            WHERE id = %s
             """,
-            rows,
+            data_edited,
         )
 
     if changes["added_rows"]:
