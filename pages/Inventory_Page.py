@@ -74,9 +74,9 @@ def initialize_data(conn):
         CREATE TABLE IF NOT EXISTS inventory (
             id SERIAL PRIMARY KEY,
             Produkti TEXT,
-            Cmim_shitje TEXT,
-            Cmim_blerje TEXT,
-            Cmim_pound TEXT,
+            Cmim_shitje FLOAT,
+            Cmim_blerje FLOAT,
+            Cmim_pound FLOAT,
             Description TEXT,
             magazinim TEXT,
             status_porosie TEXT,
@@ -416,8 +416,6 @@ if not df.empty:
 
     report_type = st.selectbox("Zgjidhni llojin e raportit: ", options_with_placeholder)
     df_likujduar = df_renamed[df_renamed["Statusi"] == "Likujduar"]
-
-    # filtered_df = df[df['City'] == 'Chicago']
 
     # Group by 'Category' and calculate sum of 'Value'
     grouped_df = (
