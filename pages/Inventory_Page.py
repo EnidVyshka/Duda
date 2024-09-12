@@ -41,21 +41,17 @@ def connect_to_db():
         st.error(f"Error connecting to database: {e}")
         return None
 
-
-# Streamlit app layout
-st.title("Supabase PostgreSQL Database Connection")
-
 # Try connecting to the database
 conn = connect_to_db()
 
 if conn:
-    st.success("Successfully connected to the database!")
+    # st.toast("Successful connection to database")
     # You can execute SQL queries here if connected
     try:
         cur = conn.cursor()
         cur.execute("SELECT version();")  # Example query
         version = cur.fetchone()
-        st.write(f"PostgreSQL version: {version[0]}")
+        # st.write(f"PostgreSQL version: {version[0]}")
         cur.close()
     except Exception as e:
         st.error(f"Failed to run query: {e}")

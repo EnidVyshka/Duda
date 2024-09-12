@@ -2,6 +2,7 @@ import sqlite3
 from pathlib import Path
 
 import pandas as pd
+import psycopg2
 import streamlit as st
 
 c1, c2, c3 = st.columns(3)
@@ -24,19 +25,22 @@ if btn1:
 st.header("Manaxhimi i Produkteve")
 
 
-def connect_db():
-    """Connects to the sqlite database."""
+def connect_to_db():
+    try:
+        conn = psycopg2.connect(
+            host=st.secrets.db_credentials["host"],
+            port=st.secrets.db_credentials["port"],
+            dbname=st.secrets.db_credentials["db_name"],
+            user=st.secrets.db_credentials["db_user"],
+            password=st.secrets.db_credentials["db_password"],
+        )
+        return conn
+    except Exception as e:
+        st.error(f"Error connecting to database: {e}")
+        return None
 
-    DB_FILENAME = Path(__file__).parent / "inventory.db"
-    db_already_exists = DB_FILENAME.exists()
 
-    conn = sqlite3.connect(DB_FILENAME)
-    db_was_just_created = not db_already_exists
-
-    return conn, db_was_just_created
-
-
-conn, db_was_just_created = connect_db()
+conn = connect_to_db()
 
 
 def insert_non_existing_values_to_table(table_name, name):
@@ -76,8 +80,6 @@ def delete_value_from_table(table_name, name):
     )
     conn.commit()
 
-
-# product_list = [t[1:][0] for t in fetch_data("products")]
 
 prod = st.text_input("Produkti i ri")
 if st.button("Shto ne liste"):
