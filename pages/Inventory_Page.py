@@ -45,7 +45,6 @@ def connect_to_db():
 conn = connect_to_db()
 
 if conn:
-    # st.toast("Successful connection to database")
     # You can execute SQL queries here if connected
     try:
         cur = conn.cursor()
