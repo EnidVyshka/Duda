@@ -190,9 +190,11 @@ def update_data(conn, df, changes):
         )
 
     if changes["deleted_rows"]:
+
+        data = [(int(df.loc[i, "id"]),) for i in changes["deleted_rows"]]
         cursor.executemany(
-            "DELETE FROM inventory WHERE id = :id",
-            ({"id": int(df.loc[i, "id"])} for i in changes["deleted_rows"]),
+            "DELETE FROM inventory WHERE id = %s",
+            data,
         )
 
     conn.commit()
