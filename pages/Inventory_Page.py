@@ -1,17 +1,9 @@
 from collections import defaultdict
-from pathlib import Path
-import sqlite3
+
 import streamlit as st
-from matplotlib import pyplot as plt
 import pandas as pd
 import plotly.graph_objs as go
-
-# st.set_page_config(
-#     initial_sidebar_state="collapsed",
-#     layout="wide",
-#     page_title='Duda Shop',
-#     page_icon=':shopping_bags:',  # This is an emoji shortcode. Could be a URL too.
-# )
+import psycopg2
 
 c1, c2, c3 = st.columns(3)
 
@@ -34,16 +26,43 @@ if btn1:
 # Declare some useful functions.
 
 
-def connect_db():
-    """Connects to the sqlite database."""
+# Function to connect to the Supabase PostgreSQL database
+def connect_to_db():
+    try:
+        conn = psycopg2.connect(
+            host=st.secrets.db_credentials["host"],
+            port=st.secrets.db_credentials["port"],
+            dbname=st.secrets.db_credentials["db_name"],
+            user=st.secrets.db_credentials["db_user"],
+            password=st.secrets.db_credentials["db_password"],
+        )
+        return conn
+    except Exception as e:
+        st.error(f"Error connecting to database: {e}")
+        return None
 
-    DB_FILENAME = Path(__file__).parent / "inventory.db"
-    db_already_exists = DB_FILENAME.exists()
 
-    conn = sqlite3.connect(DB_FILENAME)
-    db_was_just_created = not db_already_exists
+# Streamlit app layout
+st.title("Supabase PostgreSQL Database Connection")
 
-    return conn, db_was_just_created
+# Try connecting to the database
+conn = connect_to_db()
+
+if conn:
+    st.success("Successfully connected to the database!")
+    # You can execute SQL queries here if connected
+    try:
+        cur = conn.cursor()
+        cur.execute("SELECT version();")  # Example query
+        version = cur.fetchone()
+        st.write(f"PostgreSQL version: {version[0]}")
+        cur.close()
+    except Exception as e:
+        st.error(f"Failed to run query: {e}")
+    finally:
+        conn.close()
+else:
+    st.error("Connection failed.")
 
 
 def initialize_data(conn):
@@ -53,13 +72,13 @@ def initialize_data(conn):
     cursor.execute(
         """
         CREATE TABLE IF NOT EXISTS inventory (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id SERIAL PRIMARY KEY,
             Produkti TEXT,
-            Cmim_shitje REAL,
-            Cmim_blerje REAL,
-            Cmim_pound REAL,
+            Cmim_shitje TEXT,
+            Cmim_blerje TEXT,
+            Cmim_pound TEXT,
             Description TEXT,
-            magazinim REAL,
+            magazinim TEXT,
             status_porosie TEXT,
             Porositesi TEXT,
             link TEXT,
@@ -71,7 +90,7 @@ def initialize_data(conn):
     cursor.execute(
         """
         CREATE TABLE IF NOT EXISTS products (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id SERIAL PRIMARY KEY,
             Produkti TEXT
         )
         """
@@ -143,14 +162,31 @@ def update_data(conn, df, changes):
         )
 
     if changes["added_rows"]:
+        data = [
+            (
+                # row.get('id', None),
+                row.get('Produkti', None),
+                row.get('Porositesi', None),
+                row.get('Cmim_shitje', None),
+                row.get('Cmim_pound', None),
+                row.get('Cmim_blerje', None),
+                row.get('Description', None),
+                row.get('magazinim', None),
+                row.get('status_porosie', None),
+                row.get('link', None),
+                row.get('date_created', None)
+            )
+            for row in changes["added_rows"]
+        ]
+
         cursor.executemany(
             """
-            INSERT INTO inventory
-                (id, Produkti, Porositesi, Cmim_shitje, Cmim_pound, Cmim_blerje, Description, magazinim, status_porosie, link, date_created)
-            VALUES
-                (:id, :Produkti, :Porositesi, :Cmim_shitje, :Cmim_pound, :Cmim_blerje,  :Description, :magazinim, :status_porosie, :link, :date_created)
-            """,
-            (defaultdict(lambda: None, row) for row in changes["added_rows"]),
+                INSERT INTO inventory
+                    (Produkti, Porositesi, Cmim_shitje, Cmim_pound, Cmim_blerje, Description, magazinim, status_porosie, link, date_created)
+                VALUES
+                    (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """,
+            data,
         )
 
     if changes["deleted_rows"]:
@@ -208,12 +244,13 @@ st.info(
 )
 
 # Connect to database and create table if needed
-conn, db_was_just_created = connect_db()
+conn = connect_to_db()
+initialize_data(conn)
 
 # Initialize data.
-if db_was_just_created:
-    initialize_data(conn)
-    st.toast("Database initialized.")
+# if db_was_just_created:
+# initialize_data(conn)
+# st.toast("Database initialized.")
 
 # Load data from database
 df = load_data(conn)
@@ -313,7 +350,7 @@ with st.expander("Klikoni KETU per te filtruar tabelen"):
             filtered_dff = df_renamed[
                 (df_renamed["Data"].dt.date >= data1)
                 & (df_renamed["Data"].dt.date <= data2)
-            ]
+                ]
             filtered_dff["date_only"] = filtered_dff["Data"].dt.date
             st.dataframe(
                 filtered_dff,
@@ -349,7 +386,6 @@ with st.expander("Klikoni KETU per te filtruar tabelen"):
         except:
             st.error("Databaze eshte bosh. Ju lutem shtoni artikuj")
 
-
 if not df.empty:
     st.markdown("## 📈 Statistika dhe Raporte")
 
@@ -384,8 +420,8 @@ if not df.empty:
         grouped_df["Dita"] = grouped_df["Dita"].astype(str)
 
         for column in grouped_df.columns[
-            1:
-        ]:  # Skip the first column (Month) for x-values
+                      1:
+                      ]:  # Skip the first column (Month) for x-values
             fig.add_trace(
                 go.Scatter(
                     x=grouped_df["Dita"],  # x-values (months)
@@ -445,7 +481,7 @@ if not df.empty:
             filtered_df_by_timerange = raport_ditor_produkt[
                 (raport_ditor_produkt["Data"].dt.date >= data_e_pare)
                 & (raport_ditor_produkt["Data"].dt.date <= data_e_dyte)
-            ]
+                ]
 
             filtered_df_by_timerange = filtered_df_by_timerange.groupby("Produkti")[
                 "Count"
@@ -506,7 +542,7 @@ if not df.empty:
         )
 
         grouped_df["Difference"] = (
-            grouped_df["Xhiro (ALL)"] - grouped_df["Blerje (ALL)"]
+                grouped_df["Xhiro (ALL)"] - grouped_df["Blerje (ALL)"]
         )
         grouped_df.rename(
             columns={
@@ -528,8 +564,8 @@ if not df.empty:
         grouped_df["Muaji"] = grouped_df["Muaji"].astype(str)
 
         for column in grouped_df.columns[
-            1:
-        ]:  # Skip the first column (Month) for x-values
+                      1:
+                      ]:  # Skip the first column (Month) for x-values
             fig.add_trace(
                 go.Scatter(
                     x=grouped_df["Muaji"],  # x-values (months)
